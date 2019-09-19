@@ -45,7 +45,10 @@ func (s *BotServer) getCommandBang() string {
 }
 
 func (s *BotServer) makeAdvertisement() kbchat.Advertisement {
-	var descExtendedBody = fmt.Sprintf(`Type a drink name and get the recipe of the closest match`)
+	var descExtendedBody = fmt.Sprintf(`Type a drink name and get the recipe of the closest match. Examples:
+	%s
+  !dkdesc martini
+  !dkdesc parisian daiquiri%s`, mdQuotes, mdQuotes)
 	return kbchat.Advertisement{
 		Alias: "Bartender Bot",
 		Advertisements: []chat1.AdvertiseCommandAPIParam{
@@ -70,13 +73,13 @@ Describe a drink`,
 
 func (s *BotServer) handleDesc(cmd string, convID string) {
 	terms := strings.Split(cmd, " ")
-	if len(terms) != 2 {
+	if len(terms) < 2 {
 		if _, err := s.kbc.SendMessageByConvID(convID, "must specify a drink query"); err != nil {
 			s.debug("handleDesc: failed to send error message: %s", err)
 		}
 		return
 	}
-	query := terms[1]
+	query := strings.Join(terms[1:], " ")
 	drink, err := s.db.Describe(query)
 	switch err {
 	case nil:
