@@ -49,6 +49,10 @@ func (s *BotServer) makeAdvertisement() kbchat.Advertisement {
 	%s
   !dkdesc martini
   !dkdesc parisian daiquiri%s`, mdQuotes, mdQuotes)
+	var randomExtendedBody = fmt.Sprintf(`Type a cocktail ingredient (such as gin, vermouth, lime) and let the Bottender pick a random drink with a twist. Examples:
+  %s
+!dkrandom gin
+!dkrandom elderflower%s`, mdQuotes, mdQuotes)
 	return kbchat.Advertisement{
 		Alias: "Bartender Bot",
 		Advertisements: []chat1.AdvertiseCommandAPIParam{
@@ -63,6 +67,16 @@ func (s *BotServer) makeAdvertisement() kbchat.Advertisement {
 Describe a drink`,
 							DesktopBody: descExtendedBody,
 							MobileBody:  descExtendedBody,
+						},
+					},
+					{
+						Name:        "dkrandom",
+						Description: "Pick a random drink from an ingredient",
+						ExtendedDescription: &chat1.UserBotExtendedDescription{
+							Title: `*!dkrandom*
+Pick a random drink`,
+							DesktopBody: randomExtendedBody,
+							MobileBody:  randomExtendedBody,
 						},
 					},
 				},
@@ -95,6 +109,36 @@ func (s *BotServer) handleDesc(cmd string, convID string) {
 	}
 }
 
+func (s *BotServer) handleRandom(cmd string, convID string) {
+	terms := strings.Split(cmd, " ")
+	if len(terms) < 2 {
+		if _, err := s.kbc.SendMessageByConvID(convID, "must specify an ingredient"); err != nil {
+			s.debug("handleDesc: failed to send error message: %s", err)
+		}
+		return
+	}
+	query := strings.Join(terms[1:], " ")
+	drinks, err := s.db.Random(query, 5)
+	switch err {
+	case nil:
+		if len(drinks) == 0 {
+			if _, err := s.kbc.SendMessageByConvID(convID, "no drinks found"); err != nil {
+				s.debug("handleRandom: failed to send drink message: %s", err)
+			}
+		} else {
+			if _, err := s.kbc.SendMessageByConvID(convID, "I've selected a few of my favorites, but let's let chance decide which one to make"); err != nil {
+				s.debug("handleRandom: failed to send drink message: %s", err)
+			}
+			msg := fmt.Sprintf("/flip %s", strings.Join(DrinkNames(drinks), ", "))
+			if _, err := s.kbc.SendMessageByConvID(convID, msg); err != nil {
+				s.debug("handleRandom: failed to send drink message: %s", err)
+			}
+		}
+	default:
+		s.debug("handleDesc: misc error: %s", err)
+	}
+}
+
 func (s *BotServer) handleCommand(msg chat1.MsgSummary) {
 	if msg.Content.Text == nil {
 		s.debug("skipping non-text message")
@@ -103,6 +147,8 @@ func (s *BotServer) handleCommand(msg chat1.MsgSummary) {
 	switch {
 	case strings.HasPrefix(msg.Content.Text.Body, "!dkdesc"):
 		s.handleDesc(msg.Content.Text.Body, msg.ConvID)
+	case strings.HasPrefix(msg.Content.Text.Body, "!dkrandom"):
+		s.handleRandom(msg.Content.Text.Body, msg.ConvID)
 	default:
 		s.debug("unknown command: %s", msg.Content.Text.Body)
 	}

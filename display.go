@@ -35,3 +35,10 @@ func DisplayDrinkFull(drink Drink) string {
  %s`, drink.Name, drink.Mixing, drink.Glass, drink.Serving, strings.Join(ingredients, "\n"),
 		drink.Notes)
 }
+
+func DrinkNames(drinks []Drink) (res []string) {
+	for _, drink := range drinks {
+		res = append(res, drink.Name)
+	}
+	return res
+}
