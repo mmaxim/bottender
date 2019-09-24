@@ -86,8 +86,12 @@ func (d *DrinkDB) Describe(query string) (res Drink, err error) {
 	return d.describeDrinkByID(drinkID)
 }
 
-func (d *DrinkDB) Random(query string, num int) (res []Drink, err error) {
-	rows, err := d.db.Query(`
+func (d *DrinkDB) Random(query *string, num int) (res []Drink, err error) {
+	var rows *sql.Rows
+	if query == nil {
+		rows, err = d.db.Query(`SELECT id FROM drinks ORDER BY RAND() LIMIT ?`, num)
+	} else {
+		rows, err = d.db.Query(`
 		SELECT drink_id
 		FROM drink_ingredients di
 		JOIN (
@@ -95,7 +99,8 @@ func (d *DrinkDB) Random(query string, num int) (res []Drink, err error) {
 		) AS matches ON di.ingredient_id = matches.id
 		ORDER BY RAND()
 		LIMIT ?
-	`, fmt.Sprintf("%%%s%%", query), num)
+	`, fmt.Sprintf("%%%s%%", *query), num)
+	}
 	if err != nil {
 		return res, err
 	}

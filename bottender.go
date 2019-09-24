@@ -110,15 +110,13 @@ func (s *BotServer) handleDesc(cmd string, convID string) {
 }
 
 func (s *BotServer) handleRandom(cmd string, convID string) {
-	terms := strings.Split(cmd, " ")
-	if len(terms) < 2 {
-		if _, err := s.kbc.SendMessageByConvID(convID, "must specify an ingredient"); err != nil {
-			s.debug("handleDesc: failed to send error message: %s", err)
-		}
-		return
+	terms := strings.Split(strings.Trim(cmd, " "), " ")
+	var query *string
+	if len(terms) >= 2 {
+		query = new(string)
+		*query = strings.Join(terms[1:], " ")
 	}
-	query := strings.Join(terms[1:], " ")
-	drinks, err := s.db.Random(query, 5)
+	drinks, err := s.db.Random(query, 10)
 	switch err {
 	case nil:
 		if len(drinks) == 0 {
