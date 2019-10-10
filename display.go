@@ -10,7 +10,7 @@ var mdQuotes = "```"
 func (i DrinkIngredient) DisplayFull() string {
 	var amount string
 	switch i.Ingredient.Category {
-	case "spirit", "liqueur", "aromatic", "sugar", "citrus":
+	case "spirit", "liqueur", "aromatic", "sugar", "citrus", "mixer":
 		amount = fmt.Sprintf("%.2f oz", float64(i.Amount)/100.0)
 	case "bitters":
 		amount = fmt.Sprintf("%d dashes", i.Amount)

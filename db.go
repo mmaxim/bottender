@@ -22,7 +22,20 @@ func (d *DrinkDB) debug(msg string, args ...interface{}) {
 	fmt.Printf("DrinkDB: "+msg+"\n", args...)
 }
 
-func (d *DrinkDB) describeDrinkByID(drinkID int) (res Drink, err error) {
+func (d *DrinkDB) runTxn(fn func(tx *sql.Tx) error) error {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return err
+	}
+	if err := fn(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (d *DrinkDB) describeDrinkByID(drinkID DrinkID) (res Drink, err error) {
+	res.ID = drinkID
 	rows, err := d.db.Query(`
 		SELECT name, mixing, glass, serving, notes
 		FROM drinks
@@ -75,7 +88,8 @@ func (d *DrinkDB) Describe(query string) (res Drink, err error) {
 	if err != nil {
 		return res, err
 	}
-	var drinkID int
+	defer rows.Close()
+	var drinkID DrinkID
 	for rows.Next() {
 		if err := rows.Scan(&drinkID); err != nil {
 			return res, err
@@ -84,6 +98,60 @@ func (d *DrinkDB) Describe(query string) (res Drink, err error) {
 	}
 	rows.Close()
 	return d.describeDrinkByID(drinkID)
+}
+
+func (d *DrinkDB) DescribeIngredient(query string) (res Ingredient, err error) {
+	rows, err := d.db.Query(`
+		SELECT i.id, i.name, i.desc, i.category
+		FROM ingredient i
+		WHERE name = ?
+	`, query)
+	if err != nil {
+		return res, err
+	}
+	defer rows.Close()
+	found := false
+	for rows.Next() {
+		if err := rows.Scan(&res.ID, &res.Name, &res.Desc, &res.Category); err != nil {
+			return res, err
+		}
+		found = true
+		break
+	}
+	if !found {
+		return res, errors.New("ingredient not found")
+	}
+	return res, nil
+}
+
+func (d *DrinkDB) addDrinkIngredient(tx *sql.Tx, drinkID DrinkID, ingredient DrinkIngredient) error {
+	_, err := tx.Exec(`
+		INSERT INTO drink_ingredients (drink_id, ingredient_id, amount)
+		VALUES (?, ?, ?)
+	`, drinkID, ingredient.Ingredient.ID, ingredient.Amount)
+	return err
+}
+
+func (d *DrinkDB) AddRecipe(name, mixing, glass, serving, notes string, ingredients []DrinkIngredient) (err error) {
+	return d.runTxn(func(tx *sql.Tx) error {
+		nameRes, err := tx.Exec(`
+			INSERT INTO drinks (name, mixing, glass, serving, notes)
+			VALUES (?, ?, ?, ?, ?)
+		`, name, mixing, glass, serving, notes)
+		if err != nil {
+			return err
+		}
+		id, err := nameRes.LastInsertId()
+		if err != nil {
+			return err
+		}
+		for _, ingredient := range ingredients {
+			if err := d.addDrinkIngredient(tx, DrinkID(id), ingredient); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (d *DrinkDB) Random(query *string, num int) (res []Drink, err error) {
@@ -105,9 +173,9 @@ func (d *DrinkDB) Random(query *string, num int) (res []Drink, err error) {
 		return res, err
 	}
 	defer rows.Close()
-	var drinkIDs []int
+	var drinkIDs []DrinkID
 	for rows.Next() {
-		var drinkID int
+		var drinkID DrinkID
 		if err := rows.Scan(&drinkID); err != nil {
 			return res, err
 		}

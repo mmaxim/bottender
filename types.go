@@ -1,6 +1,10 @@
 package main
 
+type DrinkID int
+type IngredientID int
+
 type Ingredient struct {
+	ID       IngredientID
 	Name     string
 	Category string
 	Desc     string
@@ -12,6 +16,7 @@ type DrinkIngredient struct {
 }
 
 type Drink struct {
+	ID          DrinkID
 	Ingredients []DrinkIngredient
 	Mixing      string
 	Serving     string

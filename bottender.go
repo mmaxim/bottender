@@ -5,10 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/kballard/go-shellquote"
 	"github.com/keybase/go-keybase-chat-bot/kbchat"
 	"github.com/keybase/go-keybase-chat-bot/kbchat/types/chat1"
 )
@@ -79,6 +81,14 @@ Pick a random drink`,
 							MobileBody:  randomExtendedBody,
 						},
 					},
+					{
+						Name:        "dkaddrecipe",
+						Description: "Add a new drink recipe",
+						ExtendedDescription: &chat1.UserBotExtendedDescription{
+							Title: `*!dkaddrecipe*
+Add a new recipe`,
+						},
+					},
 				},
 			},
 		},
@@ -137,6 +147,106 @@ func (s *BotServer) handleRandom(cmd string, convID string) {
 	}
 }
 
+type ingredientFlags []string
+
+func (i *ingredientFlags) String() string {
+	return ""
+}
+
+func (i *ingredientFlags) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+func (s *BotServer) handleAddRecipe(cmd string, sender string, convID string) {
+	toks, err := shellquote.Split(cmd)
+	if err != nil {
+		if _, err := s.kbc.SendMessageByConvID(convID, "failed to split command"); err != nil {
+			s.debug("handleAddRecipe: failed to send error message: %s", err)
+		}
+		return
+	}
+	var ings ingredientFlags
+	var name, mixing, serving, glass, notes string
+	flags := flag.NewFlagSet(toks[0], flag.ContinueOnError)
+	flags.Var(&ings, "ingredient", "ingredients")
+	flags.StringVar(&mixing, "mixing", "", "mixing")
+	flags.StringVar(&serving, "serving", "", "serving")
+	flags.StringVar(&glass, "glass", "", "glass")
+	flags.StringVar(&notes, "notes", "", "notes")
+	s.debug("toks[1:]: %s", toks[1:])
+	if err := flags.Parse(toks[1:]); err != nil {
+		if _, err := s.kbc.SendMessageByConvID(convID, "failed to parse command"); err != nil {
+			s.debug("handleAddRecipe: failed to send error message: %s", err)
+		}
+		return
+	}
+	args := flags.Args()
+	if len(args) != 1 {
+		if _, err := s.kbc.SendMessageByConvID(convID, "must specify a drink name"); err != nil {
+			s.debug("handleAddRecipe: failed to send error message: %s", err)
+		}
+		return
+	}
+	name = args[0]
+	if len(mixing) == 0 || len(serving) == 0 || len(glass) == 0 {
+		if _, err := s.kbc.SendMessageByConvID(convID, "must specify all aspects of drink"); err != nil {
+			s.debug("handleAddRecipe: failed to send error message: %s", err)
+		}
+		return
+	}
+	// get all ingredients
+	var ingredients []DrinkIngredient
+	for _, ing := range ings {
+		parts := strings.Split(ing, ",")
+		if len(parts) != 2 {
+			if _, err := s.kbc.SendMessageByConvID(convID, fmt.Sprintf("invalid ingredient: %s", ing)); err != nil {
+				s.debug("handleAddRecipe: failed to send error message: %s", err)
+			}
+			return
+		}
+		amount, err := strconv.ParseInt(parts[1], 0, 0)
+		if err != nil {
+			if _, err := s.kbc.SendMessageByConvID(convID,
+				fmt.Sprintf("invalid ingredient amount: %s", parts[1])); err != nil {
+				s.debug("handleAddRecipe: failed to send error message: %s", err)
+			}
+			return
+		}
+		ingredient, err := s.db.DescribeIngredient(parts[0])
+		if err != nil {
+			if _, err := s.kbc.SendMessageByConvID(convID,
+				fmt.Sprintf("failed to describe ingredient: %s", parts[0])); err != nil {
+				s.debug("handleAddRecipe: failed to send error message: %s", err)
+			}
+			return
+		}
+		ingredients = append(ingredients, DrinkIngredient{
+			Ingredient: ingredient,
+			Amount:     int(amount),
+		})
+	}
+	if err := s.db.AddRecipe(name, mixing, glass, serving, notes, ingredients); err != nil {
+		s.debug("handleAddRecipe: failed to add recipe: %s", err)
+		if _, err := s.kbc.SendMessageByConvID(convID, "failed to add recipe"); err != nil {
+			s.debug("handleAddRecipe: failed to send error message: %s", err)
+		}
+		return
+	}
+	if _, err := s.kbc.SendMessageByConvID(convID, "Success!"); err != nil {
+		s.debug("handleAddRecipe: failed to send success message: %s", err)
+	}
+	if _, err := s.kbc.SendMessageByConvID(convID, fmt.Sprintf("!dkdesc %s", name)); err != nil {
+		s.debug("handleAddRecipe: failed to send success message: %s", err)
+	}
+	if _, err := s.kbc.Broadcast(fmt.Sprintf("New recipe added by @%s: %s!", sender, name)); err != nil {
+		s.debug("handleAddRecipe: failed to broadcast: %s", err)
+	}
+	if _, err := s.kbc.Broadcast(fmt.Sprintf("!dkdesc %s", name)); err != nil {
+		s.debug("handleAddRecipe: failed to broadcast: %s", err)
+	}
+}
+
 func (s *BotServer) handleCommand(msg chat1.MsgSummary) {
 	if msg.Content.Text == nil {
 		s.debug("skipping non-text message")
@@ -147,6 +257,8 @@ func (s *BotServer) handleCommand(msg chat1.MsgSummary) {
 		s.handleDesc(msg.Content.Text.Body, msg.ConvID)
 	case strings.HasPrefix(msg.Content.Text.Body, "!dkrandom"):
 		s.handleRandom(msg.Content.Text.Body, msg.ConvID)
+	case strings.HasPrefix(msg.Content.Text.Body, "!dkaddrecipe"):
+		s.handleAddRecipe(msg.Content.Text.Body, msg.Sender.Username, msg.ConvID)
 	default:
 		s.debug("unknown command: %s", msg.Content.Text.Body)
 	}
@@ -174,16 +286,13 @@ func (s *BotServer) Start() (err error) {
 		return err
 	}
 	s.debug("startup success, listening for messages...")
-	username := s.kbc.GetUsername()
 	for {
 		msg, err := sub.Read()
 		if err != nil {
 			s.debug("Read() error: %s", err.Error())
 			continue
 		}
-		if msg.Message.Sender.Username != username {
-			s.handleCommand(msg.Message)
-		}
+		s.handleCommand(msg.Message)
 	}
 }
 
