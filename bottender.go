@@ -18,7 +18,7 @@ import (
 type Options struct {
 	KeybaseLocation string
 	Home            string
-	Owner           string
+	Announcement    string
 }
 
 type BotServer struct {
@@ -275,8 +275,8 @@ func (s *BotServer) Start() (err error) {
 		s.debug("advertise error: %s", err)
 		return err
 	}
-	if s.opts.Owner != "" {
-		if _, err := s.kbc.SendMessageByTlfName(s.opts.Owner, "I'm running."); err != nil {
+	if s.opts.Announcement != "" {
+		if _, err := s.kbc.SendMessageByTlfName(s.opts.Announcement, "I'm running."); err != nil {
 			s.debug("failed to announce self: %s", err)
 			return err
 		}
@@ -303,16 +303,17 @@ func main() {
 
 func mainInner() int {
 	var opts Options
+	var dsn string
 	flag.StringVar(&opts.KeybaseLocation, "keybase", "keybase", "keybase command")
 	flag.StringVar(&opts.Home, "home", "", "Home directory")
-	flag.StringVar(&opts.Owner, "owner", "", "Owner of the bot")
+	flag.StringVar(&opts.Announcement, "announcement", os.Getenv("BOT_ANNOUNCEMENT"),
+		"Where to announce we are running")
+	flag.StringVar(&dsn, "dsn", os.Getenv("BOT_DSN"), "Drink database DSN")
 	flag.Parse()
-	args := flag.Args()
-	if len(args) != 1 {
+	if len(dsn) == 0 {
 		fmt.Printf("must specify a MySQL DSN for drink database\n")
 		return 3
 	}
-	dsn := args[0]
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		fmt.Printf("failed to connect to MySQL: %s\n", err)
