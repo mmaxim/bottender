@@ -264,6 +264,17 @@ func (s *BotServer) handleCommand(msg chat1.MsgSummary) {
 	}
 }
 
+func (s *BotServer) sendAnnouncement(announcement, running string) error {
+	if _, err := s.kbc.SendMessageByTlfName(announcement, running); err != nil {
+		s.debug("failed to announce self as user: %s", err)
+	}
+	if _, err := s.kbc.SendMessageByTeamName(announcement, running, nil); err != nil {
+		s.debug("failed to announce self as team: %s", err)
+		return err
+	}
+	return nil
+}
+
 func (s *BotServer) Start() (err error) {
 	if s.kbc, err = kbchat.Start(kbchat.RunOptions{
 		KeybaseLocation: s.opts.KeybaseLocation,
@@ -276,7 +287,7 @@ func (s *BotServer) Start() (err error) {
 		return err
 	}
 	if s.opts.Announcement != "" {
-		if _, err := s.kbc.SendMessageByTlfName(s.opts.Announcement, "I'm running."); err != nil {
+		if err := s.sendAnnouncement(s.opts.Announcement, "I'm running."); err != nil {
 			s.debug("failed to announce self: %s", err)
 			return err
 		}
