@@ -300,7 +300,7 @@ func (s *BotServer) Start() (err error) {
 		s.debug("advertise error: %s", err)
 		return err
 	}
-	if s.opts.Announcement != "" {
+	if s.opts.Announcement != "" && false {
 		if err := s.sendAnnouncement(s.opts.Announcement, "I'm running."); err != nil {
 			s.debug("failed to announce self: %s", err)
 			return err
