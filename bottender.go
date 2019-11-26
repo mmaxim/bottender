@@ -290,7 +290,7 @@ func (s *BotServer) Start() (err error) {
 	// Start up HTTP interface
 	http.HandleFunc("/", s.handleGet)
 	go func() {
-		if err := http.ListenAndServe(":80", nil); err != nil {
+		if err := http.ListenAndServe(":8080", nil); err != nil {
 			s.debug("failed to start http server: %s", err)
 			os.Exit(3)
 		}
