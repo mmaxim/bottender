@@ -277,7 +277,8 @@ func (s *BotServer) sendAnnouncement(announcement, running string) error {
 }
 
 func (s *BotServer) handleGet(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("<html><body><h1>Bottender</h1></body></html"))
+	s.debug("handleGet: request received")
+	fmt.Fprintf(w, "HELLO")
 }
 
 func (s *BotServer) Start() (err error) {
