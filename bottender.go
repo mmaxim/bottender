@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -275,6 +276,10 @@ func (s *BotServer) sendAnnouncement(announcement, running string) error {
 	return nil
 }
 
+func (s *BotServer) handleGet(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("<html><body><h1>Bottender</h1></body></html"))
+}
+
 func (s *BotServer) Start() (err error) {
 	if s.kbc, err = kbchat.Start(kbchat.RunOptions{
 		KeybaseLocation: s.opts.KeybaseLocation,
@@ -282,6 +287,15 @@ func (s *BotServer) Start() (err error) {
 	}); err != nil {
 		return err
 	}
+	// Start up HTTP interface
+	http.HandleFunc("/", s.handleGet)
+	go func() {
+		if err := http.ListenAndServe(":80", nil); err != nil {
+			s.debug("failed to start http server: %s", err)
+			os.Exit(3)
+		}
+	}()
+
 	if _, err := s.kbc.AdvertiseCommands(s.makeAdvertisement()); err != nil {
 		s.debug("advertise error: %s", err)
 		return err
