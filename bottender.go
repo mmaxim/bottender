@@ -265,15 +265,28 @@ func (s *BotServer) handleCommand(msg chat1.MsgSummary) {
 	}
 }
 
-func (s *BotServer) sendAnnouncement(announcement, running string) error {
+func (s *BotServer) sendAnnouncement(announcement, running string) (err error) {
+	defer func() {
+		if err == nil {
+			s.debug("announcement success")
+		}
+	}()
+	if _, err := s.kbc.SendMessageByConvID(announcement, running); err != nil {
+		s.debug("failed to announce self as conv ID: %s", err)
+	} else {
+		return nil
+	}
 	if _, err := s.kbc.SendMessageByTlfName(announcement, running); err != nil {
 		s.debug("failed to announce self as user: %s", err)
+	} else {
+		return nil
 	}
-	if _, err := s.kbc.SendMessageByTeamName(announcement, running, nil); err != nil {
+	if _, err := s.kbc.SendMessageByTeamName(announcement, nil, running); err != nil {
 		s.debug("failed to announce self as team: %s", err)
 		return err
+	} else {
+		return nil
 	}
-	return nil
 }
 
 func (s *BotServer) handleGet(w http.ResponseWriter, r *http.Request) {

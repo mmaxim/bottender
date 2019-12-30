@@ -21,34 +21,34 @@
 			"revisionTime": "2018-04-28T03:00:07Z"
 		},
 		{
-			"checksumSHA1": "KPtlQ8NFbtTiRumCdtam7Kl+d9Y=",
+			"checksumSHA1": "fN39RuMVOmdaTDwrWaqrZYJ6edg=",
 			"path": "github.com/keybase/go-keybase-chat-bot/kbchat",
-			"revision": "187eb8217b351a6a12b9f8be2a19a5c596b6dcc7",
-			"revisionTime": "2019-09-20T19:28:15Z"
+			"revision": "799f6094a43f0d4bfcb91f7f0f0fad92460c6695",
+			"revisionTime": "2019-12-20T19:49:51Z"
 		},
 		{
-			"checksumSHA1": "m2UmXB+WXWdp3avLJYwU2mq5t+I=",
+			"checksumSHA1": "WlwvifAm/LmS+rKdpIBYsFGdOpQ=",
 			"path": "github.com/keybase/go-keybase-chat-bot/kbchat/types/chat1",
-			"revision": "79c56220e5586b011b9c81496730b597cb83453d",
-			"revisionTime": "2019-09-03T13:55:15Z"
+			"revision": "799f6094a43f0d4bfcb91f7f0f0fad92460c6695",
+			"revisionTime": "2019-12-20T19:49:51Z"
 		},
 		{
-			"checksumSHA1": "cpueh8P9cLX2TT9mde4dTh+7+0g=",
+			"checksumSHA1": "o7alSoZgwgrbGsCplfvDxBENhlk=",
 			"path": "github.com/keybase/go-keybase-chat-bot/kbchat/types/gregor1",
-			"revision": "187eb8217b351a6a12b9f8be2a19a5c596b6dcc7",
-			"revisionTime": "2019-09-20T19:28:15Z"
+			"revision": "799f6094a43f0d4bfcb91f7f0f0fad92460c6695",
+			"revisionTime": "2019-12-20T19:49:51Z"
 		},
 		{
-			"checksumSHA1": "t3980A5on/uIqxSFtfqytajHP8Q=",
+			"checksumSHA1": "ZkhI+t9RXfp90CbP3ORvFOUjg3U=",
 			"path": "github.com/keybase/go-keybase-chat-bot/kbchat/types/keybase1",
-			"revision": "79c56220e5586b011b9c81496730b597cb83453d",
-			"revisionTime": "2019-09-03T13:55:15Z"
+			"revision": "799f6094a43f0d4bfcb91f7f0f0fad92460c6695",
+			"revisionTime": "2019-12-20T19:49:51Z"
 		},
 		{
-			"checksumSHA1": "ngl5T9LkJdRE9TJGdGvo6Dh3SdA=",
+			"checksumSHA1": "6gVB72KcS7++2g9P+ubk65gpgH8=",
 			"path": "github.com/keybase/go-keybase-chat-bot/kbchat/types/stellar1",
-			"revision": "79c56220e5586b011b9c81496730b597cb83453d",
-			"revisionTime": "2019-09-03T13:55:15Z"
+			"revision": "799f6094a43f0d4bfcb91f7f0f0fad92460c6695",
+			"revisionTime": "2019-12-20T19:49:51Z"
 		},
 		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
