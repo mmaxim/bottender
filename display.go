@@ -26,13 +26,14 @@ func DisplayDrinkFull(drink Drink) string {
 		ingredients = append(ingredients, i.DisplayFull())
 	}
 	return fmt.Sprintf(`*Name*: %s
+*Author*: @%s
 *Mixing*: %s
 *Glass*: %s
 *Serving*: %s
 *Ingredients*
 %s
 *Notes*
- %s`, drink.Name, drink.Mixing, drink.Glass, drink.Serving, strings.Join(ingredients, "\n"),
+ %s`, drink.Name, drink.Author, drink.Mixing, drink.Glass, drink.Serving, strings.Join(ingredients, "\n"),
 		drink.Notes)
 }
 

@@ -37,7 +37,7 @@ func (d *DrinkDB) runTxn(fn func(tx *sql.Tx) error) error {
 func (d *DrinkDB) describeDrinkByID(drinkID DrinkID) (res Drink, err error) {
 	res.ID = drinkID
 	rows, err := d.db.Query(`
-		SELECT name, mixing, glass, serving, notes
+		SELECT name, mixing, glass, serving, notes, author
 		FROM drinks
 		WHERE id = ?
 	`, drinkID)
@@ -48,7 +48,7 @@ func (d *DrinkDB) describeDrinkByID(drinkID DrinkID) (res Drink, err error) {
 	// Get drink basic stats
 	defer rows.Close()
 	for rows.Next() {
-		if err := rows.Scan(&res.Name, &res.Mixing, &res.Glass, &res.Serving, &res.Notes); err != nil {
+		if err := rows.Scan(&res.Name, &res.Mixing, &res.Glass, &res.Serving, &res.Notes, &res.Author); err != nil {
 			return res, err
 		}
 		break
@@ -132,12 +132,13 @@ func (d *DrinkDB) addDrinkIngredient(tx *sql.Tx, drinkID DrinkID, ingredient Dri
 	return err
 }
 
-func (d *DrinkDB) AddRecipe(name, mixing, glass, serving, notes string, ingredients []DrinkIngredient) (err error) {
+func (d *DrinkDB) AddRecipe(name, mixing, glass, serving, notes string, ingredients []DrinkIngredient,
+	author string) (err error) {
 	return d.runTxn(func(tx *sql.Tx) error {
 		nameRes, err := tx.Exec(`
-			INSERT INTO drinks (name, mixing, glass, serving, notes)
-			VALUES (?, ?, ?, ?, ?)
-		`, name, mixing, glass, serving, notes)
+			INSERT INTO drinks (name, mixing, glass, serving, notes, author)
+			VALUES (?, ?, ?, ?, ?, ?)
+		`, name, mixing, glass, serving, notes, author)
 		if err != nil {
 			return err
 		}

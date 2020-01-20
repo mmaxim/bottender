@@ -23,4 +23,5 @@ type Drink struct {
 	Glass       string
 	Notes       string
 	Name        string
+	Author      string
 }

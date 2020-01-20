@@ -50,44 +50,50 @@ func (s *BotServer) getCommandBang() string {
 func (s *BotServer) makeAdvertisement() kbchat.Advertisement {
 	var descExtendedBody = fmt.Sprintf(`Type a drink name and get the recipe of the closest match. Examples:
 	%s
-  !dkdesc martini
-  !dkdesc parisian daiquiri%s`, mdQuotes, mdQuotes)
+  !bottender describe martini
+  !bottender describe parisian daiquiri%s`, mdQuotes, mdQuotes)
 	var randomExtendedBody = fmt.Sprintf(`Type a cocktail ingredient (such as gin, vermouth, lime) and let the Bottender pick a random drink with a twist. Examples:
   %s
-!dkrandom gin
-!dkrandom elderflower%s`, mdQuotes, mdQuotes)
+!bottender random gin
+!bottender random elderflower%s`, mdQuotes, mdQuotes)
+	var addExtendedBody = fmt.Sprintf(`Submit a drink recipe for review. 
+%s!bottender addrecipe <--ingredient "ingredient name",amount> [--ingredient...] <--serving "serving style"> <--mixing "mixing method"> <--glass "glass type> [--notes "notes] <drink name%s
+Example
+%s!bottender addrecipe --ingredient bourbon,200 --ingredient "simple syrup",50 --ingredient 'aromatic bitters',2 --serving rocks --mixing stirred --glass rocks 'Old Fashioned'%s`, mdQuotes, mdQuotes, mdQuotes, mdQuotes)
 	return kbchat.Advertisement{
-		Alias: "Bartender Bot",
+		Alias: "Bartender",
 		Advertisements: []chat1.AdvertiseCommandAPIParam{
 			{
 				Typ: "public",
 				Commands: []chat1.UserBotCommandInput{
 					{
-						Name:        "dkdesc",
+						Name:        "bottender describe",
 						Description: "Describe a drink",
 						ExtendedDescription: &chat1.UserBotExtendedDescription{
-							Title: `*!dkdesc*
+							Title: `*!bottender describe*
 Describe a drink`,
 							DesktopBody: descExtendedBody,
 							MobileBody:  descExtendedBody,
 						},
 					},
 					{
-						Name:        "dkrandom",
+						Name:        "bottender random",
 						Description: "Pick a random drink from an ingredient",
 						ExtendedDescription: &chat1.UserBotExtendedDescription{
-							Title: `*!dkrandom*
+							Title: `*!bottender random*
 Pick a random drink`,
 							DesktopBody: randomExtendedBody,
 							MobileBody:  randomExtendedBody,
 						},
 					},
 					{
-						Name:        "dkaddrecipe",
+						Name:        "bottender addrecipe",
 						Description: "Add a new drink recipe",
 						ExtendedDescription: &chat1.UserBotExtendedDescription{
-							Title: `*!dkaddrecipe*
+							Title: `*!bottender addrecipe*
 Add a new recipe`,
+							DesktopBody: addExtendedBody,
+							MobileBody:  addExtendedBody,
 						},
 					},
 				},
@@ -98,13 +104,13 @@ Add a new recipe`,
 
 func (s *BotServer) handleDesc(cmd string, convID chat1.ConvIDStr) {
 	terms := strings.Split(cmd, " ")
-	if len(terms) < 2 {
+	if len(terms) < 3 {
 		if _, err := s.kbc.SendMessageByConvID(convID, "must specify a drink query"); err != nil {
 			s.debug("handleDesc: failed to send error message: %s", err)
 		}
 		return
 	}
-	query := strings.Join(terms[1:], " ")
+	query := strings.Join(terms[2:], " ")
 	drink, err := s.db.Describe(query)
 	switch err {
 	case nil:
@@ -123,9 +129,9 @@ func (s *BotServer) handleDesc(cmd string, convID chat1.ConvIDStr) {
 func (s *BotServer) handleRandom(cmd string, convID chat1.ConvIDStr) {
 	terms := strings.Split(strings.Trim(cmd, " "), " ")
 	var query *string
-	if len(terms) >= 2 {
+	if len(terms) >= 3 {
 		query = new(string)
-		*query = strings.Join(terms[1:], " ")
+		*query = strings.Join(terms[2:], " ")
 	}
 	drinks, err := s.db.Random(query, 10)
 	switch err {
@@ -227,7 +233,7 @@ func (s *BotServer) handleAddRecipe(cmd string, sender string, convID chat1.Conv
 			Amount:     int(amount),
 		})
 	}
-	if err := s.db.AddRecipe(name, mixing, glass, serving, notes, ingredients); err != nil {
+	if err := s.db.AddRecipe(name, mixing, glass, serving, notes, ingredients, sender); err != nil {
 		s.debug("handleAddRecipe: failed to add recipe: %s", err)
 		if _, err := s.kbc.SendMessageByConvID(convID, "failed to add recipe"); err != nil {
 			s.debug("handleAddRecipe: failed to send error message: %s", err)
@@ -237,13 +243,13 @@ func (s *BotServer) handleAddRecipe(cmd string, sender string, convID chat1.Conv
 	if _, err := s.kbc.SendMessageByConvID(convID, "Success!"); err != nil {
 		s.debug("handleAddRecipe: failed to send success message: %s", err)
 	}
-	if _, err := s.kbc.SendMessageByConvID(convID, fmt.Sprintf("!dkdesc %s", name)); err != nil {
+	if _, err := s.kbc.SendMessageByConvID(convID, fmt.Sprintf("!bottender describe %s", name)); err != nil {
 		s.debug("handleAddRecipe: failed to send success message: %s", err)
 	}
 	if _, err := s.kbc.Broadcast(fmt.Sprintf("New recipe added by @%s: %s!", sender, name)); err != nil {
 		s.debug("handleAddRecipe: failed to broadcast: %s", err)
 	}
-	if _, err := s.kbc.Broadcast(fmt.Sprintf("!dkdesc %s", name)); err != nil {
+	if _, err := s.kbc.Broadcast(fmt.Sprintf("!bottender describe %s", name)); err != nil {
 		s.debug("handleAddRecipe: failed to broadcast: %s", err)
 	}
 }
@@ -254,11 +260,11 @@ func (s *BotServer) handleCommand(msg chat1.MsgSummary) {
 		return
 	}
 	switch {
-	case strings.HasPrefix(msg.Content.Text.Body, "!dkdesc"):
+	case strings.HasPrefix(msg.Content.Text.Body, "!bottender describe"):
 		s.handleDesc(msg.Content.Text.Body, msg.ConvID)
-	case strings.HasPrefix(msg.Content.Text.Body, "!dkrandom"):
+	case strings.HasPrefix(msg.Content.Text.Body, "!bottender random"):
 		s.handleRandom(msg.Content.Text.Body, msg.ConvID)
-	case strings.HasPrefix(msg.Content.Text.Body, "!dkaddrecipe"):
+	case strings.HasPrefix(msg.Content.Text.Body, "!bottender addrecipe"):
 		s.handleAddRecipe(msg.Content.Text.Body, msg.Sender.Username, msg.ConvID)
 	default:
 		s.debug("unknown command: %s", msg.Content.Text.Body)
