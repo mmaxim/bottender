@@ -173,6 +173,12 @@ func (s *BotServer) handleAddRecipe(cmd string, sender string, convID chat1.Conv
 		}
 		return
 	}
+	if len(toks) < 3 {
+		if _, err := s.kbc.SendMessageByConvID(convID, "must specify drink ingredients"); err != nil {
+			s.debug("handleDesc: failed to send error message: %s", err)
+		}
+		return
+	}
 	var ings ingredientFlags
 	var name, mixing, serving, glass, notes string
 	flags := flag.NewFlagSet(toks[0], flag.ContinueOnError)
@@ -181,8 +187,8 @@ func (s *BotServer) handleAddRecipe(cmd string, sender string, convID chat1.Conv
 	flags.StringVar(&serving, "serving", "", "serving")
 	flags.StringVar(&glass, "glass", "", "glass")
 	flags.StringVar(&notes, "notes", "", "notes")
-	s.debug("toks[1:]: %s", toks[1:])
-	if err := flags.Parse(toks[1:]); err != nil {
+	s.debug("toks[2:]: %s", toks[2:])
+	if err := flags.Parse(toks[2:]); err != nil {
 		if _, err := s.kbc.SendMessageByConvID(convID, "failed to parse command"); err != nil {
 			s.debug("handleAddRecipe: failed to send error message: %s", err)
 		}
