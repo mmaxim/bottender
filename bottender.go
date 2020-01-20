@@ -57,7 +57,7 @@ func (s *BotServer) makeAdvertisement() kbchat.Advertisement {
 !bottender random gin
 !bottender random elderflower%s`, mdQuotes, mdQuotes)
 	var addExtendedBody = fmt.Sprintf(`Submit a drink recipe for review. 
-%s!bottender addrecipe <--ingredient "ingredient name",amount> [--ingredient...] <--serving "serving style"> <--mixing "mixing method"> <--glass "glass type> [--notes "notes] <drink name%s
+%s!bottender addrecipe <--ingredient "ingredient name",amount> [--ingredient...] <--serving "serving style"> <--mixing "mixing method"> <--glass "glass type> [--notes "notes] <drink name>%s
 Example
 %s!bottender addrecipe --ingredient bourbon,200 --ingredient "simple syrup",50 --ingredient 'aromatic bitters',2 --serving rocks --mixing stirred --glass rocks 'Old Fashioned'%s`, mdQuotes, mdQuotes, mdQuotes, mdQuotes)
 	return kbchat.Advertisement{
