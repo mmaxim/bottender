@@ -96,7 +96,7 @@ Add a new recipe`,
 	}
 }
 
-func (s *BotServer) handleDesc(cmd string, convID string) {
+func (s *BotServer) handleDesc(cmd string, convID chat1.ConvIDStr) {
 	terms := strings.Split(cmd, " ")
 	if len(terms) < 2 {
 		if _, err := s.kbc.SendMessageByConvID(convID, "must specify a drink query"); err != nil {
@@ -120,7 +120,7 @@ func (s *BotServer) handleDesc(cmd string, convID string) {
 	}
 }
 
-func (s *BotServer) handleRandom(cmd string, convID string) {
+func (s *BotServer) handleRandom(cmd string, convID chat1.ConvIDStr) {
 	terms := strings.Split(strings.Trim(cmd, " "), " ")
 	var query *string
 	if len(terms) >= 2 {
@@ -159,7 +159,7 @@ func (i *ingredientFlags) Set(value string) error {
 	return nil
 }
 
-func (s *BotServer) handleAddRecipe(cmd string, sender string, convID string) {
+func (s *BotServer) handleAddRecipe(cmd string, sender string, convID chat1.ConvIDStr) {
 	toks, err := shellquote.Split(cmd)
 	if err != nil {
 		if _, err := s.kbc.SendMessageByConvID(convID, "failed to split command"); err != nil {
@@ -265,13 +265,13 @@ func (s *BotServer) handleCommand(msg chat1.MsgSummary) {
 	}
 }
 
-func (s *BotServer) sendAnnouncement(announcement, running string) (err error) {
+func (s *BotServer) sendAnnouncement(announcement string, running string) (err error) {
 	defer func() {
 		if err == nil {
 			s.debug("announcement success")
 		}
 	}()
-	if _, err := s.kbc.SendMessageByConvID(announcement, running); err != nil {
+	if _, err := s.kbc.SendMessageByConvID(chat1.ConvIDStr(announcement), running); err != nil {
 		s.debug("failed to announce self as conv ID: %s", err)
 	} else {
 		return nil
