@@ -316,7 +316,6 @@ func (s *BotServer) sendAnnouncement(announcement string, running string) (err e
 }
 
 func (s *BotServer) handleGet(w http.ResponseWriter, r *http.Request) {
-	s.debug("handleGet: request received")
 	fmt.Fprintf(w, "HELLO")
 }
 
