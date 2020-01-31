@@ -279,9 +279,15 @@ func (s *BotServer) handleCommand(msg chat1.MsgSummary) {
 }
 
 func (s *BotServer) handleNewConv(conv chat1.ConvSummary) {
-	msg := "Thanks for adding the Bottender! Please check out the @bottenderfans team for discussion of anything cocktail related. Start off with a `!bottender describe` command to get things started!"
-	if _, err := s.kbc.SendMessageByConvID(conv.Id, msg); err != nil {
-		s.debug("failed to welcome: %s", err)
+	if conv.Channel.MembersType == "team" && !conv.IsDefaultConv {
+		s.debug("handleNewConv: skipping conversation %+v, not default team conv", conv)
+	} else if conv.CreatorInfo != nil && conv.CreatorInfo.Username == s.kbc.GetUsername() {
+		s.debug("handleNewConv: skipping conversation %+v, bot created conversation", conv)
+	} else {
+		msg := "Thanks for adding the Bottender! Please check out the @bottenderfans team for discussion of anything cocktail related. Start off with a `!bottender describe` command to get things started!"
+		if _, err := s.kbc.SendMessageByConvID(conv.Id, msg); err != nil {
+			s.debug("failed to welcome: %s", err)
+		}
 	}
 }
 
