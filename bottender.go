@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/kballard/go-shellquote"
 	"github.com/keybase/go-keybase-chat-bot/kbchat"
@@ -277,6 +278,13 @@ func (s *BotServer) handleCommand(msg chat1.MsgSummary) {
 	}
 }
 
+func (s *BotServer) handleNewConv(conv chat1.ConvSummary) {
+	msg := "Thanks for adding the Bottender! Please check out the @bottenderfans team for discussion of anything cocktail related. Start off with a `!bottender describe` command to get things started!"
+	if _, err := s.kbc.SendMessageByConvID(conv.Id, msg); err != nil {
+		s.debug("failed to welcome: %s", err)
+	}
+}
+
 func (s *BotServer) sendAnnouncement(announcement string, running string) (err error) {
 	defer func() {
 		if err == nil {
@@ -332,19 +340,34 @@ func (s *BotServer) Start() (err error) {
 			return err
 		}
 	}
-	sub, err := s.kbc.ListenForNewTextMessages()
+	sub, err := s.kbc.Listen(kbchat.ListenOptions{Convs: true})
 	if err != nil {
+		s.debug("Listen: failed to listen: %s", err)
 		return err
 	}
 	s.debug("startup success, listening for messages...")
-	for {
-		msg, err := sub.Read()
-		if err != nil {
-			s.debug("Read() error: %s", err.Error())
-			continue
+	var eg errgroup.Group
+	eg.Go(func() error {
+		for {
+			msg, err := sub.Read()
+			if err != nil {
+				s.debug("Read() error: %s", err.Error())
+				continue
+			}
+			s.handleCommand(msg.Message)
 		}
-		s.handleCommand(msg.Message)
-	}
+	})
+	eg.Go(func() error {
+		for {
+			conv, err := sub.ReadNewConvs()
+			if err != nil {
+				s.debug("Read() error: %s", err.Error())
+				continue
+			}
+			s.handleNewConv(conv.Conversation)
+		}
+	})
+	return eg.Wait()
 }
 
 func main() {
